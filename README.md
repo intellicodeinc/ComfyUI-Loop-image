@@ -3,7 +3,6 @@
 [English](#english) | [简体中文](#简体中文)
 
 <a name="english"></a>
-# ComfyUI Loop Image
 
 ## Introduction
 ComfyUI Loop Image is a node package specifically designed for image loop processing. It provides two main processing modes: Batch Image Processing and Single Image Processing, along with supporting image segmentation and merging functions.
