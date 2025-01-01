@@ -1,0 +1,15 @@
+[project]
+name = "loop-image"
+description = ""
+version = "1.0.0"
+license = {file = "LICENSE"}
+dependencies = ["opencv-python", "numpy"]
+
+[project.urls]
+Repository = "https://github.com/WainWong/ComfyUI-Loop-image"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "ComfyUI-Loop-image"
+Icon = ""
