@@ -144,7 +144,14 @@ This batch processing system allows you to apply different processing methods to
 4. Control iteration count to avoid over-processing
 
 ## Example Workflows
-TODO
+
+**Batch Processing Workflow**
+
+![Batch Processing Workflow](examples/batch_workflow.png)
+
+**Single Processing Workflow**
+
+![Single Processing Workflow](examples/single_workflow.png)
 
 ## Acknowledgments
 This project references the following excellent open source projects:
@@ -329,7 +336,14 @@ ComfyUI Loop Image是一个专门用于处理图像循环操作的节点包。�
 
 
 ## 示例工作流
-TODO
+
+**批量图片工作流**
+
+![Batch Processing Workflow](examples/batch_workflow.png)
+
+**单图片工作流**
+
+![Single Processing Workflow](examples/single_workflow.png)
 
 
 ## 致谢
