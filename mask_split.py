@@ -155,10 +155,39 @@ class MaskMerge:
     
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("merged_image",)
-    # INPUT_IS_LIST = True
     FUNCTION = "merge_masked_images"
-    
     CATEGORY = "CyberEveLoop🐰"
+
+    def standardize_input(self, image, processed_images=None, masks=None):
+        """
+        标准化输入格式
+        - image: [H,W,C] -> [1,H,W,C]
+        - processed_images: [...] -> [B,H,W,C]
+        - masks: [...] -> [B,H,W]
+        """
+        # 处理原始图像
+        if len(image.shape) == 3:
+            image = image.unsqueeze(0)
+        assert len(image.shape) == 4, f"Original image must be 4D [B,H,W,C], got shape {image.shape}"
+
+        # 处理processed_images
+        if processed_images is not None:
+            if isinstance(processed_images, list):
+                processed_images = torch.cat(processed_images, dim=0)
+            if len(processed_images.shape) == 3:
+                processed_images = processed_images.unsqueeze(0)
+            assert len(processed_images.shape) == 4, \
+                f"Processed images must be 4D [B,H,W,C], got shape {processed_images.shape}"
+
+        # 处理masks
+        if masks is not None:
+            if isinstance(masks, list):
+                masks = torch.cat(masks, dim=0)
+            if len(masks.shape) == 2:
+                masks = masks.unsqueeze(0)
+            assert len(masks.shape) == 3, f"Masks must be 3D [B,H,W], got shape {masks.shape}"
+
+        return image, processed_images, masks
 
     def resize_tensor(self, x, size, mode='bilinear'):
         """调整tensor尺寸的辅助函数"""
@@ -190,18 +219,13 @@ class MaskMerge:
         if processed_images is None or masks is None:
             return (original_image,)
         
-        # 确保原始图像维度正确
-        if len(original_image.shape) == 3:
-            original_image = original_image.unsqueeze(0)
+        # 标准化输入
+        original_image, processed_images, masks = self.standardize_input(
+            original_image, processed_images, masks
+        )
         
         # 创建结果图像的副本
         result = original_image.clone()
-        
-        # 确保processed_images和masks都是张量
-        if isinstance(processed_images, list):
-            processed_images = torch.cat(processed_images, dim=0)
-        if isinstance(masks, list):
-            masks = torch.cat(masks, dim=0)
         
         # 获取目标尺寸
         target_height = original_image.shape[1]
@@ -232,7 +256,9 @@ class MaskMerge:
             current_mask = masks[i:i+1]
             result = current_mask * current_image + (1 - current_mask) * result
         
+        assert len(result.shape) == 4, "Output must be 4D [B,H,W,C]"
         return (result,)
+    
 
 Mask_CLASS_MAPPINGS = {
     "CyberEve_MaskSegmentation": MaskSplit,
