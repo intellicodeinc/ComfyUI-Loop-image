@@ -3,8 +3,13 @@
 [English](README.md) | [简体中文](README_CN.md)
 
 ---
+## 最新更新 (2025-01-25)
+增强了批处理功能，新增图像反馈循环特性：
+- 在BatchImageLoopClose中添加了`pass_back`选项，支持将处理后的图片传回循环开始处
+- BatchImageLoopOpen现可自动将单张图片扩展至与蒙版批次相同大小
 
-## 最新更新 (2025-01-19)
+
+## 更新 (2025-01-19)
 新增路径选择示例工作流，展示了Loop Index Switch的高级用法。该示例位于"examples/Route_Selection"，通过懒加载特性实现基于迭代次数的路径选择：
 - 第一次迭代(0)：执行Flux Redux工作流
 - 第二次迭代(1)：执行Flux Pulid工作流

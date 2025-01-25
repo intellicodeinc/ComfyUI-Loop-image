@@ -3,8 +3,13 @@
 [English](README.md) | [简体中文](README_CN.md)
 
 ---
+## Latest Update (2025-01-25)
+Enhanced the batch processing capabilities with a new feedback loop feature:
+- Added `pass_back` option in BatchImageLoopClose to enable passing processed images back to the loop start
+- BatchImageLoopOpen now automatically expands single images to match mask batch size
 
-## Latest Update (2025-01-19)
+
+## Update (2025-01-19)
 Added a new route selection workflow example demonstrating advanced Loop Index Switch usage. Located in "examples/Route_Selection", this workflow showcases path selection based on iteration count using lazy loading features:
 - First iteration (0): Executes Flux Redux workflow
 - Second iteration (1): Executes Flux Pulid workflow

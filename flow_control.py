@@ -1,5 +1,6 @@
 from comfy_execution.graph_utils import GraphBuilder, is_link
 from .tools import VariantSupport
+import torch.nn.functional as F
 import torch
 from nodes import NODE_CLASS_MAPPINGS as ALL_NODE_CLASS_MAPPINGS
 
@@ -18,6 +19,7 @@ class BatchImageLoopOpen:
             "hidden": {
                 "unique_id": "UNIQUE_ID",
                 "iteration_count": ("INT", {"default": 0}),
+                "previous_image": ("IMAGE",),  # 新增：接收上一次循环的图片
             }
         }
         return inputs
@@ -32,7 +34,15 @@ class BatchImageLoopOpen:
         标准化输入格式
         images: 确保是4D tensor [B,H,W,C]
         masks: 确保是3D tensor [B,H,W]
+        如果images是单张图片，会扩展到与masks相同的批次大小
         """
+        # 处理masks（先处理masks以获取批次大小）
+        if isinstance(masks, list):
+            masks = torch.cat(masks, dim=0)
+        if len(masks.shape) == 2:  # [H,W] -> [1,H,W]
+            masks = masks.unsqueeze(0)
+        assert len(masks.shape) == 3, f"Masks must be 3D [B,H,W], got shape {masks.shape}"
+        
         # 处理images
         if isinstance(images, list):
             images = torch.cat(images, dim=0)
@@ -40,13 +50,11 @@ class BatchImageLoopOpen:
             images = images.unsqueeze(0)
         assert len(images.shape) == 4, f"Images must be 4D [B,H,W,C], got shape {images.shape}"
 
-        # 处理masks
-        if isinstance(masks, list):
-            masks = torch.cat(masks, dim=0)
-        if len(masks.shape) == 2:  # [H,W] -> [1,H,W]
-            masks = masks.unsqueeze(0)
-        assert len(masks.shape) == 3, f"Masks must be 3D [B,H,W], got shape {masks.shape}"
-
+        # 检查是否需要扩展images
+        if images.shape[0] == 1 and masks.shape[0] > 1:
+            print(f"Expanding single image to match mask batch size: {masks.shape[0]}")
+            images = images.expand(masks.shape[0], -1, -1, -1)
+        
         # 确保batch维度相同
         assert images.shape[0] == masks.shape[0], \
             f"Batch size mismatch: images {images.shape[0]} vs masks {masks.shape[0]}"
@@ -54,7 +62,31 @@ class BatchImageLoopOpen:
         return images, masks
 
 
-    def while_loop_open(self, segmented_images, segmented_masks, unique_id=None, iteration_count=0):
+    def resize_to_match(self, image, target_shape):
+        """调整图片尺寸以匹配目标shape"""
+        if image.shape[1:3] != target_shape[1:3]:
+            # 确保是4D tensor
+            if len(image.shape) == 3:
+                image = image.unsqueeze(0)
+            
+            # 转换为[B,C,H,W]用于插值
+            image = image.permute(0, 3, 1, 2)
+            
+            # 执行resize
+            image = F.interpolate(
+                image,
+                size=(target_shape[1], target_shape[2]),
+                mode='bilinear',
+                align_corners=False
+            )
+            
+            # 转换回[B,H,W,C]
+            image = image.permute(0, 2, 3, 1)
+        
+        return image
+
+    def while_loop_open(self, segmented_images, segmented_masks, unique_id=None, 
+                       iteration_count=0, previous_image=None):
         print(f"while_loop_open Processing iteration {iteration_count}")
         
         # 标准化输入
@@ -65,9 +97,22 @@ class BatchImageLoopOpen:
         if max_iterations == 0:
             raise ValueError("No images provided in segmented_images")
             
-        # 验证迭代计数（修改这里）
+        # 验证迭代计数
         if iteration_count >= max_iterations:
             raise ValueError(f"Iteration count {iteration_count} exceeds max iterations {max_iterations}")
+            
+        # 处理上一次循环传回的图片
+        if previous_image is not None and iteration_count > 0:
+            # 确保previous_image维度正确
+            if len(previous_image.shape) == 3:
+                previous_image = previous_image.unsqueeze(0)
+                
+            # 调整尺寸以匹配batch中的图片
+            previous_image = self.resize_to_match(previous_image, segmented_images.shape)
+            
+            # 替换下一次要处理的图片
+            next_idx = min(iteration_count, max_iterations - 1)
+            segmented_images[next_idx:next_idx+1] = previous_image
             
         # 获取当前迭代的图片和蒙版
         current_image = segmented_images[iteration_count:iteration_count+1]
@@ -89,6 +134,9 @@ class BatchImageLoopClose:
                 "current_image": ("IMAGE",),
                 "current_mask": ("MASK",),
                 "max_iterations": ("INT", {"forceInput": True}),
+            },
+            "optional": {
+                "pass_back": ("BOOLEAN", {"default": False}),  # 新增：控制是否传回图片
             },
             "hidden": {
                 "dynprompt": "DYNPROMPT",
@@ -146,7 +194,6 @@ class BatchImageLoopClose:
                 contained[child_id] = True
                 self.collect_contained(child_id, upstream, contained)
 
-
     def standardize_input(self, image, mask):
         """
         标准化输入格式
@@ -164,7 +211,6 @@ class BatchImageLoopClose:
         assert len(mask.shape) == 3, f"Mask must be 3D [B,H,W], got shape {mask.shape}"
 
         return image, mask
-
 
     def initialize_results(self, max_iterations, current_image, current_mask):
         """
@@ -188,17 +234,16 @@ class BatchImageLoopClose:
         )  # 明确指定 [B,H,W]
         
         return result_images, result_masks
-    
 
     def while_loop_close(self, flow_control, current_image, current_mask, max_iterations, 
-                        iteration_count=0, result_images=None, result_masks=None,
+                        pass_back=False, iteration_count=0, result_images=None, result_masks=None,
                         dynprompt=None, unique_id=None,):
         print(f"Iteration {iteration_count} of {max_iterations}")
         
         # 标准化输入，确保格式一致
         current_image, current_mask = self.standardize_input(current_image, current_mask)
 
-        # 验证迭代计数（修改这里）
+        # 验证迭代计数
         if iteration_count >= max_iterations:
             raise ValueError(f"Iteration count {iteration_count} exceeds max iterations {max_iterations}")
 
@@ -216,7 +261,7 @@ class BatchImageLoopClose:
         result_images[iteration_count:iteration_count+1] = current_image
         result_masks[iteration_count:iteration_count+1] = current_mask
         
-        # 检查是否继续循环（修改这里）
+        # 检查是否继续循环
         if iteration_count == max_iterations - 1:
             print(f"Loop finished with {iteration_count + 1} iterations")
             return (result_images, result_masks)
@@ -279,6 +324,8 @@ class BatchImageLoopClose:
         
         new_open = graph.lookup_node(open_node)
         new_open.set_input("iteration_count", iteration_count + 1)
+        if pass_back:  # 新增：根据pass_back决定是否传回图片
+            new_open.set_input("previous_image", current_image)
 
         print(f"Continuing to iteration {iteration_count + 1}")
 
