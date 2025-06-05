@@ -599,7 +599,6 @@ class AppendList:
         return tuple([current_list])
     
 
-@VariantSupport()
 class LoopReduceClose(SingleImageLoopClose):
     
     @classmethod
@@ -711,7 +710,7 @@ class LoopReduceClose(SingleImageLoopClose):
         print(f"Continuing to iteration {iteration_count + 1}")
 
         return {
-            "result": tuple([my_clone.out(0), my_clone.out(1)]),
+            "result": tuple([my_clone.out(0)]),
             "expand": graph.finalize(),
         }
 
