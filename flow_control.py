@@ -781,6 +781,7 @@ CyberEve_Loop_CLASS_MAPPINGS = {
     "CyberEve_LoopIndexSwitch": LoopIndexSwitch,
     "CyberEve_SingleImageLoopOpen": SingleImageLoopOpen,
     "CyberEve_SingleImageLoopClose": SingleImageLoopClose,
+
 }
 
 CyberEve_Loop_DISPLAY_NAME_MAPPINGS = {
@@ -789,4 +790,14 @@ CyberEve_Loop_DISPLAY_NAME_MAPPINGS = {
     "CyberEve_LoopIndexSwitch": "Loop Index Switch🐰",
     "CyberEve_SingleImageLoopOpen": "Single Image Loop Open🐰",
     "CyberEve_SingleImageLoopClose": "Single Image Loop Close🐰",
+}
+Intellicode_CLASS_MAPPINGS = {
+    "LoopReduceClose" : LoopReduceClose,
+    "LoopReduceOpen" : LoopReduceOpen,
+    "AppendList" : AppendList,
+}
+Intellicode_DISPLAY_NAME_MAPPINGS = {
+    "LoopReduceOpen" : "Loop like Reduce function Open",
+    "LoopReduceClose" : "Loop like Reduce function Close",
+    "AppendList" : "Append values to List"
 }
