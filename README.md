@@ -1,5 +1,20 @@
 # ComfyUI Loop Image
 
+This repository is a modified version of [original project URL](https://github.com/WainWong/ComfyUI-Loop-image).
+Modifications were made by wonbinK in 2025.
+
+## Modification
+
+- We add LoopReduceOpen, LoopReduceClose nodes
+
+### LoopReduce Processing
+- Suitable for processing with dynamic input size
+- It is similar to Reduce function
+- Example
+ - make a list with dynamic input size
+
+---
+
 [English](README.md) | [简体中文](README_CN.md)
 
 ---

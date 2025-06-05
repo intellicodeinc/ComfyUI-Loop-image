@@ -529,7 +529,191 @@ class SingleImageLoopClose:
             "result": tuple([my_clone.out(0), my_clone.out(1)]),
             "expand": graph.finalize(),
         }
+
+"""
+- LoopReduceOpen
+- LoopReduceClose
+
+Author: Wonbim Kim
+Created At: 2025-06-05
+Email: wbkim@intellicode.co.kr
+"""
+@VariantSupport()
+class LoopReduceOpen:
     
+    @classmethod
+    def INPUT_TYPES(cls):
+        inputs = {
+            "required": {
+                "input_size": ("INT", {"default": 5, "min": 1, "max": 100}),
+            },
+            "optional": {
+                "initial": ("LIST",),
+            },
+            "hidden": {
+                "unique_id": "UNIQUE_ID",
+                "iteration_count": ("INT", {"default": 0}),
+                "previous_list": ("LIST",),
+            }
+        }
+        return inputs
+    
+    RETURN_TYPES = tuple(["FLOW_CONTROL", "LIST", "INT", "INT"])
+    RETURN_NAMES = tuple(["FLOW_CONTROL", "current_list", "input_size", "iteration_count"])
+    FUNCTION = "loop_open"
+    CATEGORY = "Intellicode/loop_control"
+    
+    def loop_open(self, input_size, initial=None, unique_id=None, 
+                 iteration_count=0, previous_list=None):
+        print(f"{self.__class__.__name__} Processing iteration {iteration_count}")
+        
+        initial = [] if initial is None else initial
+        
+        current_list = initial if previous_list is None else previous_list
+        
+        return tuple(["stub", current_list, input_size, iteration_count])
+
+@VariantSupport()
+class AppendList:
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        inputs = {
+            "required" : {
+                "current_list" : ("LIST",),
+                "current_value" : ("*"), # TODO : get any value
+            }
+        }
+        return inputs
+    
+    RETURN_TYPES = tuple(["LIST"])
+    RETURN_NAMES = tuple(["current_list"])
+    FUNCTION = "appending"
+    CATEGORY = "Intellicode/loop_control"
+    
+    def appending(self, current_list, current_value):
+        
+        current_list.append(current_value)
+        return tuple([current_list])
+    
+
+@VariantSupport()
+class LoopReduceClose(SingleImageLoopClose):
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        inputs = {
+            "required": {
+                "flow_control" : ("FLOW_CONTROL", {"rawLink" : True}),
+                "current_list" : ("LIST",),
+                "input_size" : ("INT", {"forceInput" : True}),
+            },
+            "hidden" : {
+                "dynprompt" : "DYNPROMPT",
+                "unique_id" : "UNIQUE_ID",
+                "iteration_count" : ("INT", {"default":0}),
+            }
+        }
+        return inputs
+
+    RETURN_TYPES = tuple(["LIST"])
+    RETURN_NAME = tuple(["final_list"])
+    FUNCTION = "loop_close"
+    CATEGORY = "Intellicode/loop_control"
+
+    def explore_dependencies(self, node_id, dynprompt, upstream, parent_ids):
+        node_info = dynprompt.get_node(node_id)
+        if "inputs" not in node_info:
+            return
+
+        for k, v in node_info["inputs"].items():
+            if is_link(v):
+                parent_id = v[0]
+                display_id = dynprompt.get_display_node_id(parent_id)
+                display_node = dynprompt.get_node(display_id)
+                class_type = display_node["class_type"]
+                if class_type not in ['LoopReduceClose']:
+                    parent_ids.append(display_id)
+                if parent_id not in upstream:
+                    upstream[parent_id] = []
+                    self.explore_dependencies(parent_id, dynprompt, upstream, parent_ids)
+                upstream[parent_id].append(node_id)
+
+    def loop_close(self, flow_control, current_list, input_size,
+                  iteration_count=0, dynprompt=None, unique_id=None):
+        print(f"Iteration {iteration_count} of {input_size}")
+
+        # Loop End
+        if iteration_count >= input_size - 1:
+            print(f"Loop finished with {iteration_count + 1} iterations")
+            return (current_list,)
+        
+        # prepare next iteration
+        this_node = dynprompt.get_node(unique_id)
+        upstream = {}
+        parent_ids = []
+        self.explore_dependencies(unique_id, dynprompt, upstream, parent_ids)
+        parent_ids = list(set(parent_ids))
+
+        # Getting and processing output nodes
+        prompts = dynprompt.get_original_prompt()
+        output_nodes = {}
+        for id in prompts:
+            node = prompts[id]
+            if "inputs" not in node:
+                continue
+            class_type = node["class_type"]
+            if class_type in ALL_NODE_CLASS_MAPPINGS:
+                class_def = ALL_NODE_CLASS_MAPPINGS[class_type]
+                if hasattr(class_def, 'OUTPUT_NODE') and class_def.OUTPUT_NODE == True:
+                    for k, v in node['inputs'].items():
+                        if is_link(v):
+                            output_nodes[id] = v
+
+        # Creating a New Diagram
+        graph = GraphBuilder()
+        self.explore_output_nodes(dynprompt, upstream, output_nodes, parent_ids) ###
+        
+        contained = {}
+        open_node = flow_control[0]
+        self.collect_contained(open_node, upstream, contained)
+        contained[unique_id] = True
+        contained[open_node] = True
+
+        # Create a node
+        for node_id in contained:
+            original_node = dynprompt.get_node(node_id)
+            node = graph.node(original_node["class_type"], 
+                            "Recurse" if node_id == unique_id else node_id)
+            node.set_override_display_id(node_id)
+            
+        # Setting up the connection
+        for node_id in contained:
+            original_node = dynprompt.get_node(node_id)
+            node = graph.lookup_node("Recurse" if node_id == unique_id else node_id)
+            for k, v in original_node["inputs"].items():
+                if is_link(v) and v[0] in contained:
+                    parent = graph.lookup_node(v[0])
+                    node.set_input(k, parent.out(v[1]))
+                else:
+                    node.set_input(k, v)
+
+        # Setting Node Parameters
+        my_clone = graph.lookup_node("Recurse")
+        my_clone.set_input("iteration_count", iteration_count + 1)
+        
+        new_open = graph.lookup_node(open_node)
+        new_open.set_input("iteration_count", iteration_count + 1)
+        new_open.set_input("previous_list", current_list)
+
+        print(f"Continuing to iteration {iteration_count + 1}")
+
+        return {
+            "result": tuple([my_clone.out(0), my_clone.out(1)]),
+            "expand": graph.finalize(),
+        }
 
 
 @VariantSupport()
