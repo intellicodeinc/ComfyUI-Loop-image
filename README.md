@@ -5,13 +5,19 @@ Modifications were made by wonbinK in 2025.
 
 ## Modification
 
-- We add LoopReduceOpen, LoopReduceClose nodes
+- We add some nodes:
+ - LoopReduceOpen
+ - LoopReduceClose
+ - AppendList
 
 ### LoopReduce Processing
 - Suitable for processing with dynamic input size
 - It is similar to Reduce function
 - Example
  - make a list with dynamic input size
+
+### Appending to List
+- append a value to the given list
 
 ## Example Workflows
 
