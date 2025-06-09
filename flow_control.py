@@ -563,15 +563,28 @@ class LoopReduceOpen:
     FUNCTION = "loop_open"
     CATEGORY = "Intellicode/loop_control"
     
-    def loop_open(self, input_size, initial=None, unique_id=None, 
+    @classmethod
+    def _loop_open(cls, input_size, initial=None, unique_id=None, 
                  iteration_count=0, previous_list=None):
-        print(f"{self.__class__.__name__} Processing iteration {iteration_count}")
         
+        if iteration_count==0:
+            print("initial :", initial)
+            print("iteration_count :", iteration_count)
+            print("previous_list :", previous_list)
+        
+        print(f"{cls.__class__.__name__} Processing iteration {iteration_count}")
+                
         initial = [] if initial is None else initial
         
-        current_list = initial if previous_list is None else previous_list
+        current_list = initial[:] if previous_list is None else previous_list
         
         return tuple(["stub", current_list, input_size, iteration_count])
+
+    
+    
+    def loop_open(self, input_size, initial=None, unique_id=None, 
+                 iteration_count=0, previous_list=None):
+        return self._loop_open(input_size, initial, unique_id, iteration_count, previous_list)
 
 @VariantSupport()
 class AppendList:
@@ -647,7 +660,7 @@ class LoopReduceClose(SingleImageLoopClose):
         # Loop End
         if iteration_count >= input_size - 1:
             print(f"Loop finished with {iteration_count + 1} iterations")
-            return (current_list,)
+            return (current_list[-input_size:],)
         
         # prepare next iteration
         this_node = dynprompt.get_node(unique_id)
@@ -710,7 +723,7 @@ class LoopReduceClose(SingleImageLoopClose):
         print(f"Continuing to iteration {iteration_count + 1}")
 
         return {
-            "result": tuple([my_clone.out(0)]),
+            "result": tuple([my_clone.out(0)[-input_size:]]),
             "expand": graph.finalize(),
         }
 
