@@ -567,11 +567,6 @@ class LoopReduceOpen:
     def _loop_open(cls, input_size, initial=None, unique_id=None, 
                  iteration_count=0, previous_list=None):
         
-        if iteration_count==0:
-            print("initial :", initial)
-            print("iteration_count :", iteration_count)
-            print("previous_list :", previous_list)
-        
         print(f"{cls.__class__.__name__} Processing iteration {iteration_count}")
                 
         initial = [] if initial is None else initial
