@@ -13,6 +13,12 @@ Modifications were made by wonbinK in 2025.
 - Example
  - make a list with dynamic input size
 
+## Example Workflows
+
+**LoopReduce Processing (Aggregation as list)**
+
+![LoopReduce Processing](examples/aggregate_list_workflow.png)
+
 ---
 
 [English](README.md) | [简体中文](README_CN.md)
