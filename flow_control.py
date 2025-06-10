@@ -605,9 +605,47 @@ class AppendList:
         
         current_list.append(current_value)
         return tuple([current_list])
-    
 
-class LoopReduceClose(SingleImageLoopClose):
+@VariantSupport()
+class ConcatList:
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        inputs = {
+            "required" : {
+                "type_check" : ("BOOLEAN", {"default" : False}),
+                "list_base" : ("LIST",),
+                "list_add" : ("LIST"),   
+            }
+        }
+        return inputs
+    
+    RETURN_TYPES = tuple(["LIST"])
+    RETURN_NAMES = tuple(["current_list"])
+    FUNCTION = "concat"
+    CATEGORY = "Intellicode/loop_control"
+    
+    def concat(self, type_check, list_base, list_add):
+        
+        if type_check:
+            type_list = set()
+            for v_b in list_base:
+                type_list.add(type(v_b))   
+            for v_a in list_add:
+                if isinstance(v_a, tuple(type_list)):
+                    pass
+                else:
+                    raise ValueError(f"a value type \"{type(v_a)}\" of list_add is not correspond to list_base {type_list} ")
+        
+        # TODO: [a,b, [c,d,e]] -> validate [c,d,e], [type(c), type(d), type(e)] instead of LIST 
+                
+        list_base.extend(list_add)
+        return tuple([list_base])
+
+
+class LoopReduceClose:
     
     @classmethod
     def INPUT_TYPES(cls):
@@ -721,8 +759,26 @@ class LoopReduceClose(SingleImageLoopClose):
             "result": tuple([my_clone.out(0)[-input_size:]]),
             "expand": graph.finalize(),
         }
-
-
+    def explore_output_nodes(self, dynprompt, upstream, output_nodes, parent_ids):
+        for parent_id in upstream:
+            display_id = dynprompt.get_display_node_id(parent_id)
+            for output_id in output_nodes:
+                id = output_nodes[output_id][0]
+                if id in parent_ids and display_id == id and output_id not in upstream[parent_id]:
+                    if '.' in parent_id:
+                        arr = parent_id.split('.')
+                        arr[len(arr)-1] = output_id
+                        upstream[parent_id].append('.'.join(arr))
+                    else:
+                        upstream[parent_id].append(output_id)
+    def collect_contained(self, node_id, upstream, contained):
+        if node_id not in upstream:
+            return
+        for child_id in upstream[node_id]:
+            if child_id not in contained:
+                contained[child_id] = True
+                self.collect_contained(child_id, upstream, contained)
+                
 @VariantSupport()
 class LoopIndexSwitch:
     def __init__(self):
@@ -802,9 +858,11 @@ Intellicode_CLASS_MAPPINGS = {
     "LoopReduceClose" : LoopReduceClose,
     "LoopReduceOpen" : LoopReduceOpen,
     "AppendList" : AppendList,
+    "ConcatList" : ConcatList,
 }
 Intellicode_DISPLAY_NAME_MAPPINGS = {
     "LoopReduceOpen" : "Loop like Reduce function Open",
     "LoopReduceClose" : "Loop like Reduce function Close",
-    "AppendList" : "Append values to List"
+    "AppendList" : "Append values to List",
+    "ConcatList" : "Concatenate Lists"
 }
