@@ -600,7 +600,7 @@ class EmptyList:
     
     def empty_list(self):
     
-        return tuple([])
+        return ([],)
         
 @VariantSupport()
 class EmptyListAlways:
@@ -623,7 +623,7 @@ class EmptyListAlways:
     CATEGORY = "Intellicode/loop_control"
     
     def empty_list(self):
-        return tuple([])
+        return ([],)
         
     def IS_CHANGED(self):
         return float("nan")
