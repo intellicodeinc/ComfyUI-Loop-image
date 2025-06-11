@@ -8,7 +8,9 @@ Modifications were made by wonbinK in 2025.
 - We add some nodes:
  - LoopReduceOpen
  - LoopReduceClose
+ - EmptyList
  - AppendList
+ - ConcatList
 
 ### LoopReduce Processing
 - Suitable for processing with dynamic input size
@@ -16,8 +18,15 @@ Modifications were made by wonbinK in 2025.
 - Example
  - make a list with dynamic input size
 
+### Empty List
+- Get empty list
+  - reset if ```init_always``` is True.
+
 ### Appending to List
-- append a value to the given list
+- Append a value to the given list
+
+### Concatenate Lists
+- Merge Two Lists
 
 ## Example Workflows
 

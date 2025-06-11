@@ -581,6 +581,9 @@ class LoopReduceOpen:
 
 @VariantSupport()
 class EmptyList:
+    
+    values = []
+    
     def __init__(self):
         pass
     
@@ -599,7 +602,15 @@ class EmptyList:
     CATEGORY = "Intellicode/loop_control"
     
     def empty_list(self, init_always):
-        return tuple([[]])
+    
+        return tuple([self.values])
+    
+    def IS_CHANGED(self, init_always):
+        if init_always:
+            self.values = []
+            return float("nan")
+        else:
+            return self.values
 
 @VariantSupport()
 class AppendList:
