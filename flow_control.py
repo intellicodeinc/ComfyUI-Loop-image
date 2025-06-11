@@ -582,7 +582,6 @@ class LoopReduceOpen:
 @VariantSupport()
 class EmptyList:
     
-    values = []
     
     def __init__(self):
         pass
@@ -591,7 +590,6 @@ class EmptyList:
     def INPUT_TYPES(cls):
         inputs = {
             "required" : {
-                "init_always" : ("BOOLEAN", {"default" : False}),
             }
         }
         return inputs
@@ -601,16 +599,38 @@ class EmptyList:
     FUNCTION = "empty_list"
     CATEGORY = "Intellicode/loop_control"
     
-    def empty_list(self, init_always):
+    def empty_list(self):
+    
+        return tuple([])
+        
+@VariantSupport()
+class EmptyListAlways:
+    
+    values = []
+    
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        inputs = {
+            "required" : {
+
+            }
+        }
+        return inputs
+    
+    RETURN_TYPES = tuple(["*"]) # for compatibility
+    RETURN_NAMES = tuple(["empty_list"])
+    FUNCTION = "empty_list"
+    CATEGORY = "Intellicode/loop_control"
+    
+    def empty_list(self):
     
         return tuple([self.values])
     
-    def IS_CHANGED(self, init_always):
-        if init_always:
-            self.values = []
-            return float("nan")
-        else:
-            return self.values
+    def IS_CHANGED(self):
+        return float("nan")
 
 @VariantSupport()
 class AppendList:
@@ -891,11 +911,13 @@ Intellicode_CLASS_MAPPINGS = {
     "AppendList" : AppendList,
     "ConcatList" : ConcatList,
     "EmptyList" : EmptyList,
+    "EmptyListAlways" : EmptyListAlways,
 }
 Intellicode_DISPLAY_NAME_MAPPINGS = {
     "LoopReduceOpen" : "Loop like Reduce function Open",
     "LoopReduceClose" : "Loop like Reduce function Close",
     "AppendList" : "Append values to List",
     "ConcatList" : "Concatenate Lists",
-    "EmptyList" : "Empty List"
+    "EmptyList" : "Empty List",
+    "EmptyListAlways" : "Empty List (Always Initialize)"
 }

@@ -18,9 +18,11 @@ Modifications were made by wonbinK in 2025.
 - Example
  - make a list with dynamic input size
 
-### Empty List
+### Empty List (Always Initialize)
 - Get empty list
-  - reset if ```init_always``` is True.
+
+### Empty List
+  
 
 ### Appending to List
 - Append a value to the given list
