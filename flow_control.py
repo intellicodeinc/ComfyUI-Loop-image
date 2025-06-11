@@ -573,13 +573,33 @@ class LoopReduceOpen:
         
         current_list = initial[:] if previous_list is None else previous_list
         
-        return tuple(["stub", current_list, input_size, iteration_count])
-
-    
+        return tuple(["stub", current_list, input_size, iteration_count])   
     
     def loop_open(self, input_size, initial=None, unique_id=None, 
                  iteration_count=0, previous_list=None):
         return self._loop_open(input_size, initial, unique_id, iteration_count, previous_list)
+
+@VariantSupport()
+class EmptyList:
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        inputs = {
+            "required" : {
+                "init_always" : ("BOOLEAN", {"default" : False}),
+            }
+        }
+        return inputs
+    
+    RETURN_TYPES = tuple(["*"]) # for compatibility
+    RETURN_NAMES = tuple(["empty_list"])
+    FUNCTION = "empty_list"
+    CATEGORY = "Intellicode/loop_control"
+    
+    def empty_list(self, init_always):
+        return tuple([[]])
 
 @VariantSupport()
 class AppendList:
@@ -859,10 +879,12 @@ Intellicode_CLASS_MAPPINGS = {
     "LoopReduceOpen" : LoopReduceOpen,
     "AppendList" : AppendList,
     "ConcatList" : ConcatList,
+    "EmptyList" : EmptyList,
 }
 Intellicode_DISPLAY_NAME_MAPPINGS = {
     "LoopReduceOpen" : "Loop like Reduce function Open",
     "LoopReduceClose" : "Loop like Reduce function Close",
     "AppendList" : "Append values to List",
-    "ConcatList" : "Concatenate Lists"
+    "ConcatList" : "Concatenate Lists",
+    "EmptyList" : "Empty List"
 }
