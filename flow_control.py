@@ -589,6 +589,7 @@ class EmptyList:
     def INPUT_TYPES(cls):
         inputs = {
             "required" : {
+                "init_always" : ("BOOLEAN", {"default" : False}),
             }
         }
         return inputs
@@ -598,9 +599,15 @@ class EmptyList:
     FUNCTION = "empty_list"
     CATEGORY = "Intellicode/loop_control"
     
-    def empty_list(self):
-    
+    def empty_list(self, init_always):
         return ([],)
+
+    @classmethod
+    def IS_CHANGED(cls, init_always):
+        if init_always:
+            return float("nan")
+        else:
+            return False
         
 @VariantSupport()
 class EmptyListAlways:
@@ -624,8 +631,9 @@ class EmptyListAlways:
     
     def empty_list(self):
         return ([],)
-        
-    def IS_CHANGED(self):
+    
+    @classmethod
+    def IS_CHANGED(cls):
         return float("nan")
 
 @VariantSupport()
